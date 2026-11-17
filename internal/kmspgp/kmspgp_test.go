@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 // fakeKMS is KMS with the private key here: a test's, signing as KMS's RSASSA_PKCS1_V1_5_SHA_256
@@ -80,8 +81,17 @@ func TestASignatureChecksAgainstThePublicKey(t *testing.T) {
 	k := key(t, f)
 	sums := []byte("e3b0c442  terraform-provider-spin_0.1.0_linux_amd64.zip\n")
 	var sig bytes.Buffer
-	if err := k.Sign(&sig, bytes.NewReader(sums), time.Now()); err != nil {
+	at := time.Date(2026, 12, 1, 10, 0, 0, 0, time.UTC)
+	if err := k.Sign(&sig, bytes.NewReader(sums), at); err != nil {
 		t.Fatal(err)
+	}
+	// Signed when the release was, not when the key was made.
+	p, err := packet.Read(bytes.NewReader(sig.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s, ok := p.(*packet.Signature); !ok || !s.CreationTime.Equal(at) {
+		t.Fatalf("the signature is %T made %v, want one made %v", p, s.CreationTime, at)
 	}
 	ring, err := openpgp.ReadArmoredKeyRing(bytes.NewReader(public(t, k)))
 	if err != nil {
