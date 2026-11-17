@@ -81,7 +81,7 @@ func TestASignatureChecksAgainstThePublicKey(t *testing.T) {
 	k := key(t, f)
 	sums := []byte("e3b0c442  terraform-provider-spin_0.1.0_linux_amd64.zip\n")
 	var sig bytes.Buffer
-	at := time.Date(2026, 12, 1, 10, 0, 0, 0, time.UTC)
+	at := time.Now().Add(-time.Hour).Truncate(time.Second)
 	if err := k.Sign(&sig, bytes.NewReader(sums), at); err != nil {
 		t.Fatal(err)
 	}
@@ -161,6 +161,14 @@ func TestTheKeyIsItsKMSKeyAndTime(t *testing.T) {
 	a, b := key(t, &fakeKMS{key: testKey}), key(t, &fakeKMS{key: testKey})
 	if !bytes.Equal(public(t, a), public(t, b)) || a.Fingerprint() != b.Fingerprint() || len(a.Fingerprint()) != 40 {
 		t.Fatalf("fingerprints %s and %s", a.Fingerprint(), b.Fingerprint())
+	}
+	// A version 4 key and self-signature: what Terraform's OpenPGP reads, which knows no later one.
+	ring, err := openpgp.ReadArmoredKeyRing(bytes.NewReader(public(t, a)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e := ring[0]; e.PrimaryKey.Version != 4 || e.Identities[UserID].SelfSignature.Version != 4 {
+		t.Fatalf("key version %d, self-signature version %d", e.PrimaryKey.Version, e.Identities[UserID].SelfSignature.Version)
 	}
 	s, err := NewKMSSigner(t.Context(), &fakeKMS{key: testKey}, "alias/test")
 	if err != nil {
