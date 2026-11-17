@@ -64,7 +64,7 @@ func New(signer Signer, created time.Time) (Key, error) {
 	}
 	primaryID := true
 	self := &packet.Signature{
-		Version:      4,
+		Version:      4, // mutate-exempt: go-crypto signs with the key's own version, and the test holds it to 4
 		SigType:      packet.SigTypePositiveCert,
 		PubKeyAlgo:   packet.PubKeyAlgoRSA,
 		Hash:         crypto.SHA256,
