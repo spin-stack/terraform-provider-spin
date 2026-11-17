@@ -37,5 +37,8 @@ release:
   extra_files:
     - glob: terraform-registry-manifest.json
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
+    # The public key the checksums' signature checks against: what the registries are given.
+    - glob: _output/signing-key.asc
+      name_template: '{{ .ProjectName }}_signing-key.asc'
 changelog:
   disable: true

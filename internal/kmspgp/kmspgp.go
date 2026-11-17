@@ -78,6 +78,11 @@ func New(signer Signer, created time.Time) (Key, error) {
 	if err := self.SignUserId(uid.Id, primary, priv, cfg); err != nil {
 		return Key{}, fmt.Errorf("kmspgp: self-signing the user id: %w", err)
 	}
+	// go-crypto drops the signer's own error and answers nil with nothing signed: a key whose user id
+	// KMS refused to sign is no key, and what KMS said is why.
+	if s, ok := signer.(*kmsSigner); ok && s.failed != nil {
+		return Key{}, fmt.Errorf("kmspgp: self-signing the user id: %w", s.failed)
+	}
 	e := &openpgp.Entity{
 		PrimaryKey: primary,
 		PrivateKey: priv,

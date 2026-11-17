@@ -188,6 +188,16 @@ func TestWhatKMSCannotSignIsRefused(t *testing.T) {
 	if _, err := NewKMSSigner(t.Context(), &fakeKMS{key: testKey, fail: errors.New("AccessDenied")}, "alias/test"); err == nil || !strings.Contains(err.Error(), "AccessDenied") {
 		t.Fatalf("err = %v", err)
 	}
+	// A KMS that answers the public key and refuses to sign - an account administrator, whom the
+	// key's policy does not let sign - makes no key, and says why.
+	refusing := &refusesSigning{fakeKMS{key: testKey}}
+	s0, err := NewKMSSigner(t.Context(), refusing, "alias/test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(s0, Created); err == nil || !strings.Contains(err.Error(), "AccessDeniedException") {
+		t.Fatalf("a key whose user id KMS would not sign: %v", err)
+	}
 	f := &fakeKMS{key: testKey}
 	k := key(t, f)
 	f.fail = errors.New("throttled")
@@ -209,4 +219,11 @@ func TestWhatKMSCannotSignIsRefused(t *testing.T) {
 	if _, err := New(ec, Created); err == nil || !strings.Contains(err.Error(), "RSA") {
 		t.Fatalf("an ECDSA key: %v", err)
 	}
+}
+
+// refusesSigning answers the public key and refuses every signature.
+type refusesSigning struct{ fakeKMS }
+
+func (r *refusesSigning) Sign(context.Context, string, []byte) ([]byte, error) {
+	return nil, errors.New("AccessDeniedException: not authorized to perform kms:Sign")
 }
