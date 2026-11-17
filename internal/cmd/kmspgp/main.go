@@ -23,15 +23,15 @@ import (
 )
 
 func main() {
-	if err := run(context.Background(), os.Args[1:], os.Stdout, newKMS); err != nil {
+	if err := run(context.Background(), os.Args[1:], os.Stdout, newKMS); err != nil { // mutate-exempt: the process's own arguments; run is what the tests drive
 		fmt.Fprintln(os.Stderr, "kmspgp:", err) //nolint:errcheck // the exit status says it
-		os.Exit(1)
+		os.Exit(1)                              // mutate-exempt: any status but 0 fails the release; run is what the tests drive
 	}
 }
 
 func newKMS(ctx context.Context) (kmspgp.KMS, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
+	if err != nil { // mutate-exempt: reached only with AWS's own configuration, which the release's role is
 		return nil, fmt.Errorf("AWS credentials: %w", err)
 	}
 	return kmspgp.AWS{Client: kms.NewFromConfig(cfg)}, nil
