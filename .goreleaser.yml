@@ -2,6 +2,10 @@
 # terraform-provider-spin_<version>_<os>_<arch>.zip, the manifest, and SHA256SUMS signed by the key
 # it holds for spin-stack.
 version: 2
+before:
+  hooks:
+    # Every module the binary links, with its licence, in each archive (hack/notices.sh says why).
+    - hack/notices.sh _output/THIRD_PARTY_NOTICES
 builds:
   - env: [CGO_ENABLED=0]
     mod_timestamp: '{{ .CommitTimestamp }}'
@@ -13,6 +17,10 @@ builds:
 archives:
   - formats: [zip]
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - LICENSE
+      - src: _output/THIRD_PARTY_NOTICES
+        dst: THIRD_PARTY_NOTICES
 checksum:
   extra_files:
     - glob: terraform-registry-manifest.json
