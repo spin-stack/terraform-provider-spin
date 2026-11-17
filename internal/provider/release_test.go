@@ -134,3 +134,14 @@ data "spin_release" "this" { version = "v20261001.01" }`,
 		}},
 	})
 }
+
+// The provider as it runs reads the catalog's branch, held to the release workflows' signatures.
+func TestTheProviderReadsTheCatalogAsItRuns(t *testing.T) {
+	c, err := defaultCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.URL != catalog.BranchURL || c.Check == nil || c.Client == nil {
+		t.Fatalf("catalog = %+v", c)
+	}
+}
