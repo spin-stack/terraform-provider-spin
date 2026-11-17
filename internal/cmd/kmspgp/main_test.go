@@ -74,6 +74,8 @@ func TestAnIncompleteCommandIsRefused(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, args := range map[string][]string{
+		"no out, said":            {"-key", "alias/k", "sign", file},
+		"two files":               {"-key", "alias/k", "sign", "-out", file + ".sig", file, file},
 		"no key":                  {"public"},
 		"no verb":                 {"-key", "alias/k"},
 		"another verb":            {"-key", "alias/k", "verify"},
@@ -85,8 +87,14 @@ func TestAnIncompleteCommandIsRefused(t *testing.T) {
 		"an unwritable signature": {"-key", "alias/k", "sign", "-out", filepath.Join(file, "x.sig"), file},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if err := run(t.Context(), args, &bytes.Buffer{}, connect); err == nil {
+			err := run(t.Context(), args, &bytes.Buffer{}, connect)
+			if err == nil {
 				t.Fatal("ran")
+			}
+			if strings.HasSuffix(name, ", said") || name == "two files" {
+				if !strings.Contains(err.Error(), "usage: kmspgp -key <kms key> sign") {
+					t.Fatalf("err = %v, want the sign usage", err)
+				}
 			}
 		})
 	}
