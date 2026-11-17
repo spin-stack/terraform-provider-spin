@@ -4,8 +4,9 @@
 #
 # The key is in KMS (spin-stack/ci's signing.tf) and never leaves it: this job assumes the one role
 # that may sign with it, which only the release environment's jobs may assume - and GitHub lets
-# only a v* tag deploy to that environment. Its public half, for the registries, is
-# `go run ./internal/cmd/kmspgp -key alias/terraform-provider-spin-signing public`.
+# only a v* tag deploy to that environment. So the key's public half, for the registries, is this
+# run's too: it has KMS self-sign the key's user id, which nobody else may, and puts the key in the
+# release beside what it signs.
 name: Release
 
 on:
@@ -40,6 +41,12 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::277203350136:role/terraform-provider-spin-release
           aws-region: us-west-2
+
+      - name: The signing key
+        run: |
+          mkdir -p _output
+          go run ./internal/cmd/kmspgp -key alias/terraform-provider-spin-signing public -out _output/signing-key.asc
+          cat _output/signing-key.asc
 
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:

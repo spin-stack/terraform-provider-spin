@@ -42,6 +42,13 @@ func TestThePublicKeySignsAndChecks(t *testing.T) {
 		t.Fatalf("printed %s", pub.String())
 	}
 	dir := t.TempDir()
+	file := filepath.Join(dir, "key.asc")
+	if err := run(t.Context(), []string{"-key", "alias/k", "public", "-out", file}, &bytes.Buffer{}, connect); err != nil {
+		t.Fatal(err)
+	}
+	if written, err := os.ReadFile(file); err != nil || string(written) != pub.String() {
+		t.Fatalf("-out wrote %q, %v; stdout had %q", written, err, pub.String())
+	}
 	sums := filepath.Join(dir, "SHA256SUMS")
 	if err := os.WriteFile(sums, []byte("sums\n"), 0o600); err != nil {
 		t.Fatal(err)

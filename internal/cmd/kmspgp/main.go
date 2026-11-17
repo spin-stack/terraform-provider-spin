@@ -1,7 +1,7 @@
 // Command kmspgp signs a release's checksums with the provider's KMS key, as OpenPGP, and prints
 // that key's public half for the registries:
 //
-//	kmspgp -key alias/terraform-provider-spin-signing public       # the armoured key, once per registry
+//	kmspgp -key alias/terraform-provider-spin-signing public [-out <file>]   # the armoured key, for the registries
 //	kmspgp -key alias/terraform-provider-spin-signing sign -out SHA256SUMS.sig SHA256SUMS
 //
 // AWS credentials are the SDK's own: the release workflow's role (spin-stack/ci's signing.tf).
@@ -44,7 +44,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, connect func(cont
 		return err
 	}
 	if *keyID == "" || fs.NArg() == 0 {
-		return errors.New("usage: kmspgp -key <kms key> public | sign -out <signature> <file>")
+		return errors.New("usage: kmspgp -key <kms key> public [-out <file>] | sign -out <signature> <file>")
 	}
 	k, err := connect(ctx)
 	if err != nil {
@@ -60,15 +60,36 @@ func run(ctx context.Context, args []string, stdout io.Writer, connect func(cont
 	}
 	switch fs.Arg(0) {
 	case "public":
-		if _, err := fmt.Fprintf(stdout, "# %s, fingerprint %s\n", kmspgp.UserID, key.Fingerprint()); err != nil {
-			return err
-		}
-		return key.WritePublic(stdout)
+		return public(key, fs.Args()[1:], stdout)
 	case "sign":
 		return sign(key, fs.Args()[1:])
 	default:
 		return fmt.Errorf("%q is neither public nor sign", fs.Arg(0))
 	}
+}
+
+// public writes the armoured public key, after a line naming it and its fingerprint, to -out or to
+// stdout. Only the release's role may have KMS sign the key's user id, so it is the release that
+// prints it, beside what it signs.
+func public(key kmspgp.Key, args []string, stdout io.Writer) (err error) {
+	fs := flag.NewFlagSet("public", flag.ContinueOnError)
+	out := fs.String("out", "", "where the key is written, instead of stdout")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	w := stdout
+	if *out != "" {
+		f, err := os.Create(*out)
+		if err != nil {
+			return err
+		}
+		defer func() { err = errors.Join(err, f.Close()) }()
+		w = f
+	}
+	if _, err := fmt.Fprintf(w, "# %s, fingerprint %s\n", kmspgp.UserID, key.Fingerprint()); err != nil {
+		return err
+	}
+	return key.WritePublic(w)
 }
 
 func sign(key kmspgp.Key, args []string) (err error) {
