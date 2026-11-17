@@ -1,6 +1,6 @@
-# What registry.terraform.io takes for a provider: a zip per platform named
+# What registry.terraform.io and registry.opentofu.org take for a provider: a zip per platform named
 # terraform-provider-spin_<version>_<os>_<arch>.zip, the manifest, and SHA256SUMS signed by the key
-# it holds for spin-stack.
+# they hold for spin-stack.
 version: 2
 before:
   hooks:
@@ -28,8 +28,11 @@ checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
 signs:
+  # By the KMS key spin-stack/ci's signing.tf keeps, as the role this run assumed: kmspgp wraps what
+  # KMS signs in OpenPGP, as gpg --detach-sign would write it.
   - artifacts: checksum
-    args: ["--batch", "--local-user", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}"]
+    cmd: go
+    args: ["run", "./internal/cmd/kmspgp", "-key", "alias/terraform-provider-spin-signing", "sign", "-out", "${signature}", "${artifact}"]
 release:
   extra_files:
     - glob: terraform-registry-manifest.json
