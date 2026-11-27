@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
-	github.com/spin-stack/go-tools v0.20261127.3
+	github.com/spin-stack/go-tools v0.20261127.15
 )
 
 require (
