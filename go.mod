@@ -136,3 +136,5 @@ require (
 	google.golang.org/protobuf v1.36.12 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 )
+
+tool github.com/spin-stack/go-tools/cmd/task
