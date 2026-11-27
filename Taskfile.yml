@@ -1,0 +1,26 @@
+version: '3'
+
+# The Terraform provider for Spinbox, run with `go tool task <name>`. Every workflow step is one of
+# these tasks or an action (taskgate), so a developer runs what CI runs; versions, bump, release,
+# lint:workflows and consumers are go-tools' common tasks, as in every spin-stack repository.
+includes:
+  common:
+    taskfile: '{{.GO_TOOLS_TASKS}}'
+    flatten: true
+    vars:
+      RELEASE:
+        map: {elsewhere: release.yml}
+
+tasks:
+  lint:
+    desc: gofmt and go vet; every workflow step one task, and go-tools' common tasks as every repository has them (taskgate -common); actionlint over the workflows (lint:workflows).
+    cmds:
+      - test -z "$(gofmt -l .)" || { gofmt -l .; echo 'gofmt -w .'; exit 1; }
+      - go vet ./...
+      - taskgate -common -allow .github/taskgate-allow.txt -task {{.TASK_EXE}}
+      - task: lint:workflows
+
+  test:
+    desc: The tests. Those that run a configuration need OpenTofu on PATH, as an installation runs the provider, and skip without it; CI installs it, so none skips there.
+    cmds:
+      - go test -count=1 ./...

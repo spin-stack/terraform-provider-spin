@@ -1,4 +1,4 @@
-# Every change: the tests, under OpenTofu as an installation runs the provider, and vet. The
+# Every change: the tests, under OpenTofu as an installation runs the provider, and lint. The
 # check main's ruleset requires is named Gate, as in every spin-stack repository.
 name: CI
 
@@ -9,6 +9,11 @@ on:
 
 permissions:
   contents: read
+
+# go tool task downloads Task and go-tools' release from GitHub, which sheds anonymous requests
+# first under load: the run's own token, with only what its permissions grant.
+env:
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   gate:
@@ -27,11 +32,8 @@ jobs:
         with:
           tofu_wrapper: false
 
-      - name: Format
-        run: test -z "$(gofmt -l .)"
-
-      - name: Vet
-        run: go vet ./...
+      - name: Lint
+        run: go tool task lint
 
       - name: Test
-        run: go test -count=1 ./...
+        run: go tool task test

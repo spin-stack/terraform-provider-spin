@@ -1,0 +1,4 @@
+# What taskgate allows on purpose (taskgate -allow, from task lint). Each line is a key and its
+# why: a workflow step that is not one `go tool task <name>`, as <file>/<job>/<step>.
+# The list may shrink and may not grow: a line that matches nothing fails too.
+.github/workflows/release.yml/release/The signing key  # the job that signs runs this repository's code and GoReleaser, and nothing go tool task would fetch: go-tools' latest release is no part of what the key signs
